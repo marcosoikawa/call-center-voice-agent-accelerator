@@ -32,10 +32,9 @@ def validate_config(config: dict, provider: str | None) -> bool:
     if not config.get("AZURE_VOICE_LIVE_API_KEY") and not config.get(
         "AZURE_USER_ASSIGNED_IDENTITY_CLIENT_ID"
     ):
-        errors.append(
-            "No Voice Live credentials configured. "
-            "Set either AZURE_USER_ASSIGNED_IDENTITY_CLIENT_ID (recommended) "
-            "or AZURE_VOICE_LIVE_API_KEY."
+        logger.warning(
+            "No explicit Voice Live credentials configured. "
+            "Will attempt DefaultAzureCredential (Azure CLI/VS Code login, managed identity, etc.)."
         )
 
     if errors:

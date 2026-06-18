@@ -115,6 +115,7 @@ async def web_ws():
         return
 
     handler = VoiceLiveMediaHandler(app.config)
+    handler.debug_to_client = True
     await handler.init_websocket(websocket)
     try:
         await run_call_loop(

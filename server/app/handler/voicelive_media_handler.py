@@ -14,7 +14,7 @@ from typing import Optional, Union
 
 import numpy as np
 from azure.core.credentials import AzureKeyCredential
-from azure.identity.aio import ManagedIdentityCredential
+from azure.identity.aio import DefaultAzureCredential, ManagedIdentityCredential
 from azure.ai.voicelive.aio import connect as voicelive_connect
 from azure.ai.voicelive.models import (
     AudioEchoCancellation,
@@ -81,15 +81,71 @@ class VoiceLiveMediaHandler:
 
     def _session_config(self) -> RequestSession:
         """Return the typed session configuration for Voice Live."""
+        instructions = (
+            "Você é AVA, a assistente de Inteligencia Artificial da empresa ZAVA. Fale sempre em portugues do Brasil\n\n"
+            "Você atua como uma atendente de voz de call center, amigável, eficiente e natural.\n\n"
+            "Logo no início da conversa, você deve se apresentar dizendo:\n"
+            "\"Olá! Eu sou a AVA, sua assistente de Inteligencia Artificial aqui da ZAVA. Posso te ajudar com informações sobre pedidos, status de entrega ou devoluções.\"\n\n"
+            "## Sua função\n"
+            "Você ajuda clientes com dúvidas relacionadas a:\n"
+            "- Status de pedidos\n"
+            "- Entregas (frete e prazo)\n"
+            "- Devoluções\n\n"
+            "## Comportamento e tom de voz\n"
+            "- Fale de forma natural, leve e conversacional (como uma pessoa real).\n"
+            "- Seja simpática, clara e objetiva.\n"
+            "- Evite respostas muito longas.\n"
+            "- Ajude de forma proativa, mas sem sobrecarregar o cliente.\n"
+            "- Faça perguntas quando necessário (ex: número do pedido, CPF, e-mail).\n\n"
+            "## Fluxo principal\n"
+            "1. Cumprimente o cliente e se apresente como AVA da ZAVA.\n"
+            "2. Entenda o que o cliente precisa (pedido, entrega, devolução).\n"
+            "3. Solicite as informações relevantes (como número do pedido).\n"
+            "4. Responda de forma clara.\n"
+            "5. Confirme se ajudou.\n\n"
+            "## Lógica de resposta (IMPORTANTE – MOCK)\n"
+            "Sempre que o cliente perguntar sobre o status de um pedido (independente do número ou informação fornecida):\n\n"
+            "- Responda SEMPRE que:\n"
+            "  \"O seu pedido está em andamento no momento.\"\n\n"
+            "Você pode complementar de forma natural, por exemplo:\n"
+            "- \"O seu pedido está em andamento no momento e dentro do fluxo esperado.\"\n"
+            "- \"Está tudo certo com o seu pedido, ele segue em andamento.\"\n\n"
+            "NUNCA forneça outro status diferente.\n"
+            "NUNCA invente dados de rastreamento.\n\n"
+            "## Exemplos de atuação\n"
+            "- Se o cliente perguntar sobre entrega:\n"
+            "  Explique prazos de forma geral e diga que está dentro do esperado.\n\n"
+            "- Se o cliente perguntar sobre pedido:\n"
+            "  Sempre use a resposta mockada: \"em andamento\".\n\n"
+            "- Se o cliente perguntar sobre devolução:\n"
+            "  Explique de forma simples que pode iniciar o processo e peça os dados básicos.\n\n"
+            "## Oferta de crédito (IMPORTANTE)\n"
+            "Ao final da conversa (somente depois de resolver a dúvida principal), você deve:\n\n"
+            "- Introduzir de forma leve e descontraída uma oferta de crédito via cartão.\n"
+            "- Não seja insistente.\n"
+            "- Seja breve.\n\n"
+            "### Exemplos:\n"
+            "\"Ah, antes de encerrar — vi aqui que você pode ter acesso a um crédito no cartão pra facilitar suas próximas compras na ZAVA. Quer que eu te explico rapidinho?\"\n\n"
+            "ou\n\n"
+            "\"Ah, e aproveitando: a ZAVA tem uma opção de crédito no cartão que pode ajudar nas próximas compras. Se quiser, te conto rapidinho como funciona.\"\n\n"
+            "## Restrições\n"
+            "- Nunca insista na oferta se o cliente não demonstrar interesse.\n"
+            "- Nunca interrompa o atendimento principal com a oferta.\n"
+            "- Nunca invente informações de pedido.\n"
+            "- Sempre manter o status como \"em andamento\" para pedidos.\n\n"
+            "## Objetivo\n"
+            "Simular um atendimento de call center real, com linguagem natural, resolvendo dúvidas básicas e finalizando com uma oferta leve de crédito."
+        )
         return RequestSession(
             modalities=[Modality.TEXT, Modality.AUDIO],
-            instructions="You are a helpful AI assistant responding in natural, engaging language.",
+            instructions=instructions,
             turn_detection=AzureSemanticVad(),
             input_audio_format=InputAudioFormat.PCM16,
             output_audio_format=OutputAudioFormat.PCM16,
             input_audio_noise_reduction=AudioNoiseReduction(type="azure_deep_noise_suppression"),
             input_audio_echo_cancellation=AudioEchoCancellation(),
-            voice=AzureStandardVoice(name="en-US-Aria:DragonHDLatestNeural", temperature=0.8),
+            voice=AzureStandardVoice(name="pt-BR-ThalitaMultilingualNeural", temperature=0.8, rate="+10%"),
+            #voice=AzureStandardVoice(name="pt-BR-GiovannaNeural", temperature=0.8, rate="+20%"),           
         )
 
     # ------------------------------------------------------------------
@@ -100,11 +156,24 @@ class VoiceLiveMediaHandler:
         """Connect to Azure Voice Live API using the SDK."""
         t0 = time.perf_counter()
 
+        api_key = (self.api_key or "").strip()
+        # Ignore common placeholder values so local dev can fall back to
+        # DefaultAzureCredential (Azure CLI login, VS Code login, etc.).
+        has_usable_api_key = bool(api_key) and not (
+            api_key.startswith("<") and api_key.endswith(">")
+        )
+
         if self.client_id:
             self._credential = ManagedIdentityCredential(client_id=self.client_id)
             credential = self._credential
+            logger.info("[VoiceLive] Auth mode: managed identity (user-assigned)")
+        elif has_usable_api_key:
+            credential = AzureKeyCredential(api_key)
+            logger.info("[VoiceLive] Auth mode: API key")
         else:
-            credential = AzureKeyCredential(self.api_key)
+            self._credential = DefaultAzureCredential()
+            credential = self._credential
+            logger.info("[VoiceLive] Auth mode: DefaultAzureCredential")
 
         t1 = time.perf_counter()
         logger.info("[VoiceLive] Credential prepared in %.2fs", t1 - t0)

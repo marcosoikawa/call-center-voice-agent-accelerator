@@ -3,106 +3,391 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Voice Live Agent Demo</title>
+  <title>AVA · Assistente de IA da ZAVA</title>
   <style>
+    :root {
+      --brand: #7c3aed;
+      --brand-2: #2563eb;
+      --accent: #22d3ee;
+      --bg-0: #0b1020;
+      --text: #e8edf6;
+      --muted: #9aa6bd;
+      --card: rgba(255, 255, 255, 0.06);
+      --card-border: rgba(255, 255, 255, 0.12);
+      --ok: #34d399;
+      --danger: #f43f5e;
+    }
+
+    * { box-sizing: border-box; }
+
     body {
       margin: 0;
-      padding: 0;
+      min-height: 100vh;
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background: #f0f4f8;
+      color: var(--text);
+      background:
+        radial-gradient(1100px 600px at 15% -10%, rgba(124, 58, 237, 0.35), transparent 60%),
+        radial-gradient(900px 500px at 100% 0%, rgba(37, 99, 235, 0.30), transparent 55%),
+        radial-gradient(700px 700px at 50% 120%, rgba(34, 211, 238, 0.18), transparent 60%),
+        var(--bg-0);
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      height: 100vh;
-      color: #333;
       text-align: center;
+      padding: 2.5rem 1rem 5.5rem;
+    }
+
+    .hero {
+      width: 100%;
+      max-width: 560px;
+      background: var(--card);
+      border: 1px solid var(--card-border);
+      border-radius: 1.5rem;
+      padding: 2.5rem 2rem;
+      backdrop-filter: blur(14px);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+    }
+
+    .avatar {
+      width: 110px;
+      height: 110px;
+      margin: 0 auto 1.5rem;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 1.9rem;
+      letter-spacing: 1px;
+      color: #fff;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.55);
+      position: relative;
+      transition: box-shadow 0.3s ease, transform 0.3s ease;
+    }
+
+    body.live .avatar {
+      animation: pulse 1.8s infinite;
+      transform: scale(1.03);
+    }
+
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.55); }
+      70%  { box-shadow: 0 0 0 22px rgba(34, 211, 238, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(34, 211, 238, 0); }
     }
 
     h1 {
-      font-size: 2rem;
-      margin-bottom: 1.2rem;
+      font-size: 1.9rem;
+      margin: 0 0 0.6rem;
+      font-weight: 700;
+    }
+
+    .grad {
+      background: linear-gradient(90deg, var(--accent), var(--brand));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
     }
 
     .subtitle {
-      font-size: 1rem;
-      color: #555;
-      margin-bottom: 2rem;
+      font-size: 1.02rem;
+      color: var(--muted);
+      line-height: 1.55;
+      margin: 0 auto 1.6rem;
+      max-width: 440px;
     }
+
+    .subtitle strong { color: var(--text); }
+
+    .chips {
+      display: flex;
+      gap: 0.6rem;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 1.8rem;
+    }
+
+    .chip {
+      padding: 0.45rem 0.95rem;
+      border-radius: 999px;
+      font-size: 0.88rem;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid var(--card-border);
+      color: var(--text);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.55rem;
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin-bottom: 1.6rem;
+    }
+
+    .status .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--muted);
+      transition: background 0.3s ease;
+    }
+
+    body.live .status .dot { background: var(--ok); box-shadow: 0 0 10px var(--ok); }
+    body.live .status #statusText { color: var(--text); }
 
     .controls {
       display: flex;
-      gap: 1rem;
+      gap: 0.9rem;
       flex-wrap: wrap;
       justify-content: center;
     }
 
     button {
-      padding: 0.85rem 1.75rem;
-      font-size: 1.05rem;
+      padding: 0.9rem 1.6rem;
+      font-size: 1.02rem;
+      font-weight: 600;
       border: none;
-      border-radius: 0.5rem;
+      border-radius: 0.85rem;
       cursor: pointer;
-      transition: background 0.3s ease;
+      transition: transform 0.15s ease, box-shadow 0.25s ease, opacity 0.2s ease, background 0.25s ease;
     }
+
+    button:active { transform: translateY(1px) scale(0.99); }
 
     #startBtn {
-      background-color: #0078d4;
-      color: white;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      color: #fff;
+      box-shadow: 0 10px 24px rgba(124, 58, 237, 0.45);
     }
 
-    #startBtn:hover {
-      background-color: #005ea0;
-    }
+    #startBtn:hover:not(:disabled) { box-shadow: 0 14px 30px rgba(124, 58, 237, 0.6); }
+    #startBtn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
 
     #stopBtn {
-      background-color: #e81123;
-      color: white;
+      background: rgba(244, 63, 94, 0.15);
+      color: #ffb3c0;
+      border: 1px solid rgba(244, 63, 94, 0.5);
     }
 
-    #stopBtn:disabled {
-      background-color: #f3b2b2;
-      cursor: not-allowed;
+    #stopBtn:hover:not(:disabled) { background: rgba(244, 63, 94, 0.28); color: #fff; }
+    #stopBtn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    .hint {
+      margin: 1.6rem 0 0;
+      font-size: 0.82rem;
+      color: var(--muted);
     }
 
-    audio {
-      margin-top: 2rem;
-      display: block;
+    audio { display: none; }
+
+    /* Debug toggle (switch) */
+    .debug-toggle {
+      margin-top: 1.8rem;
+      font-size: 0.88rem;
+      color: var(--muted);
+      user-select: none;
     }
+
+    .switch {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6rem;
+      cursor: pointer;
+    }
+
+    .switch input { position: absolute; opacity: 0; pointer-events: none; }
+
+    .switch .track {
+      width: 42px;
+      height: 24px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.18);
+      position: relative;
+      transition: background 0.25s ease;
+      flex: none;
+    }
+
+    .switch .track::before {
+      content: "";
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.25s ease;
+    }
+
+    .switch input:checked + .track { background: linear-gradient(135deg, var(--brand), var(--brand-2)); }
+    .switch input:checked + .track::before { transform: translateX(18px); }
+
+    /* Debug panel — hidden by default, shown via .is-open */
+    .debug-panel {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      max-height: 42vh;
+      background: #0d1424;
+      color: #d4d4d4;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.8rem;
+      text-align: left;
+      box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.5);
+      border-top: 1px solid var(--card-border);
+      display: none;
+      flex-direction: column;
+      z-index: 1000;
+    }
+
+    .debug-panel.is-open { display: flex; }
+
+    .debug-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.6rem 1rem;
+      background: #121a2e;
+      border-bottom: 1px solid var(--card-border);
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .debug-header button {
+      padding: 0.3rem 0.85rem;
+      font-size: 0.75rem;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border-radius: 0.4rem;
+    }
+
+    .debug-log {
+      overflow-y: auto;
+      padding: 0.5rem 1rem;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .debug-empty {
+      color: #6a6a6a;
+      font-style: italic;
+    }
+
+    .debug-entry {
+      padding: 0.25rem 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .debug-entry.error { color: #ff8a80; }
+    .debug-entry.warning { color: #ffd180; }
+    .debug-entry.info { color: #82b1ff; }
 
     footer {
-      position: absolute;
-      bottom: 1rem;
-      font-size: 0.85rem;
-      color: #666;
+      position: fixed;
+      bottom: 0.8rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+      opacity: 0.8;
     }
   </style>
 </head>
 <body>
-  <h1>🎙️ Voice Live Demo UX</h1>
-  <div class="subtitle">Talk to an AI agent in real time. Click below to start.</div>
+  <main class="hero">
+    <div class="avatar" id="avatar"><span>AVA</span></div>
 
-  <div class="controls">
-    <button id="startBtn" onclick="startStreaming()" title="Start talking to the voice agent">
-      Start Talking to Agent
-    </button>
-    <button id="stopBtn" onclick="stopStreaming()" disabled title="End the conversation with the agent">
-      Stop Conversation
-    </button>
-  </div>
+    <h1>Olá, eu sou a <span class="grad">AVA</span></h1>
+    <p class="subtitle">
+      Sua assistente de inteligência artificial da <strong>ZAVA</strong>.
+      Posso te ajudar com informações sobre <strong>pedidos</strong>,
+      <strong>status de entrega</strong> e <strong>devoluções</strong>.
+    </p>
+
+    <div class="chips">
+      <span class="chip">📦 Pedidos</span>
+      <span class="chip">🚚 Entregas</span>
+      <span class="chip">↩️ Devoluções</span>
+    </div>
+
+    <div class="status" id="status">
+      <span class="dot"></span>
+      <span id="statusText">Pronta para conversar</span>
+    </div>
+
+    <div class="controls">
+      <button id="startBtn" onclick="startStreaming()" title="Começar a falar com a AVA">
+        🎙️ Falar com a AVA
+      </button>
+      <button id="stopBtn" onclick="stopStreaming()" disabled title="Encerrar a conversa">
+        ⏹️ Encerrar conversa
+      </button>
+    </div>
+
+    <p class="hint">Clique em “Falar com a AVA”, permita o acesso ao microfone e fale naturalmente.</p>
+  </main>
 
   <!-- Ambient Scene: Backend handles ambient mixing via AMBIENT_PRESET env var -->
 
   <audio id="ttsPlayer" autoplay></audio>
 
+  <div class="debug-toggle">
+    <label class="switch">
+      <input type="checkbox" id="debugToggle" onchange="toggleDebug()" />
+      <span class="track"></span>
+      Painel de depuração (erros do backend)
+    </label>
+  </div>
+
+  <div id="debugPanel" class="debug-panel">
+    <div class="debug-header">
+      <span>Depuração — mensagens do backend</span>
+      <button type="button" onclick="clearDebug()">Limpar</button>
+    </div>
+    <div id="debugLog" class="debug-log">
+      <div class="debug-empty">Nenhuma mensagem ainda.</div>
+    </div>
+  </div>
+
   <footer>
-    Powered by Azure Voice Live • Demo Mode
+    Desenvolvido com Azure Voice Live • Modo demonstração
   </footer>
 
   <script>
     let mediaStream, source, processor, socket;
     let audioContext = new AudioContext({ sampleRate: 24000 });
     let workletNode;
+
+    // ----- Debug panel -------------------------------------------------
+    function toggleDebug() {
+      const checked = document.getElementById("debugToggle").checked;
+      document.getElementById("debugPanel").classList.toggle("is-open", checked);
+    }
+
+    function clearDebug() {
+      const log = document.getElementById("debugLog");
+      log.innerHTML = '<div class="debug-empty">Nenhuma mensagem ainda.</div>';
+    }
+
+    // ----- Live status -------------------------------------------------
+    function setLive(isLive, text) {
+      document.body.classList.toggle("live", isLive);
+      if (text) document.getElementById("statusText").textContent = text;
+    }
+
+    function logDebug(level, message) {
+      const log = document.getElementById("debugLog");
+      const empty = log.querySelector(".debug-empty");
+      if (empty) empty.remove();
+      const lvl = (level || "info").toLowerCase();
+      const entry = document.createElement("div");
+      entry.className = "debug-entry " + lvl;
+      const time = new Date().toLocaleTimeString();
+      entry.textContent = `[${time}] ${lvl.toUpperCase()}: ${message}`;
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
 
     // Load the AudioWorkletProcessor
     async function loadAudioProcessor() {
@@ -185,6 +470,7 @@
         await startMicrophone();
         document.getElementById("startBtn").disabled = true;
         document.getElementById("stopBtn").disabled = false;
+        setLive(true, "Conversando com a AVA…");
       };
 
       socket.onmessage = async (event) => {
@@ -196,6 +482,10 @@
           }
           if (msg.Kind === "Transcription") {
             console.log("Transcript:", msg.Text);
+          }
+          if (msg.Kind === "Debug") {
+            console.log("Backend debug:", msg.Level, msg.Message);
+            logDebug(msg.Level, msg.Message);
           }
          }
         else if (event.data instanceof ArrayBuffer) {
@@ -213,13 +503,18 @@
 
       socket.onclose = () => {
         console.log("WebSocket closed");
+        logDebug("warning", "Conexão WebSocket encerrada");
         stopMicrophone();
         stopPlayback();
         document.getElementById("startBtn").disabled = false;
         document.getElementById("stopBtn").disabled = true;
+        setLive(false, "Pronta para conversar");
       };
 
-      socket.onerror = (err) => console.error("WebSocket error", err);
+      socket.onerror = (err) => {
+        console.error("WebSocket error", err);
+        logDebug("error", "Erro na conexão WebSocket");
+      };
     }
 
     // Initialize the audio processor
